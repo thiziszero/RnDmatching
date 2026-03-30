@@ -1,1 +1,1 @@
-{"root":["./src/app.ts","./src/controllers/announcementcontrollers.ts","./src/routes/announcementrouter.ts"],"version":"6.0.2"}
+{"root":["./src/app.ts","./src/controllers/announcementcontrollers.ts","./src/controllers/financecontrollers.ts","./src/controllers/patentcontrollers.ts","./src/routes/announcementrouter.ts","./src/routes/financerouter.ts","./src/routes/patentrouter.ts","./src/services/kiprispatentservice.ts","./src/services/opendartfinanceservice.ts"],"version":"6.0.2"}

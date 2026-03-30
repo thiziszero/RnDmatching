@@ -1,9 +1,11 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import announcementRouter from './routes/announcementRouter';
+import financeRouter from './routes/financeRouter';
+import patentRouter from './routes/patentRouter';
 
 dotenv.config();
 
@@ -17,14 +19,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// API 응답 타입
-interface ApiResponse<T = unknown> {
-  success: boolean;
-  data: T;
-  message: string;
-}
-
 app.use('/api/announcement', announcementRouter);
+app.use('/api/finance', financeRouter);
+app.use('/api/patent', patentRouter);
 
 
 // 서버 시작
