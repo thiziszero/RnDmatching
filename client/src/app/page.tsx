@@ -1,166 +1,120 @@
-type AnnouncementFile = {
-  fileName?: string;
-  fileUrl?: string;
+import { Suspense } from "react";
+import AnnouncementClientPanel from "@/components/AnnouncementClientPanel";
+import AnnouncementListSkeleton from "@/components/AnnouncementListSkeleton";
+import AnnouncementServerList from "@/components/AnnouncementServerList";
+
+export const revalidate = 300;
+
+const tickerItems = [
+  "과기정통부 AI 원천기술개발 사업 공고 (마감 임박)",
+  "산업부 소재·부품·장비 R&D 공고 실시간 반영",
+  "중기부 기술혁신개발 과제 신규 등록",
+  "해양수산부 해양 신소재 과제 모집 진행중",
+];
+
+const industries = [
+  { icon: "💡", name: "반도체", count: "50+ 기업", priority: true },
+  { icon: "🔋", name: "이차전지", count: "40+ 기업", priority: true },
+  { icon: "🧬", name: "바이오/헬스", count: "40+ 기업", priority: true },
+  { icon: "🚗", name: "미래모빌리티", count: "30+ 기업", priority: true },
+  { icon: "📺", name: "디스플레이", count: "30+ 기업", priority: false },
+  { icon: "🤖", name: "AI/SW", count: "10+ 기업", priority: true },
+  { icon: "⚙️", name: "기계", count: "30+ 기업", priority: false },
+  { icon: "🔩", name: "철강/비철금속", count: "20+ 기업", priority: false },
+];
+
+type PageProps = {
+  searchParams: Promise<{ page?: string }>;
 };
 
-type Announcement = {
-  subject?: string;
-  viewUrl?: string;
-  deptName?: string;
-  managerName?: string;
-  managerTel?: string;
-  pressDt?: string;
-  files?: {
-    file?: AnnouncementFile | AnnouncementFile[];
-  };
-};
-
-type AnnouncementListData = {
-  pageNo: number;
-  numOfRows: number;
-  totalCount: number;
-  items: Announcement[];
-};
-
-type AnnouncementResponse = {
-  success: boolean;
-  data: AnnouncementListData;
-  message: string;
-};
-
-const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:8080";
-
-export const dynamic = "force-dynamic";
-
-function toArray<T>(value?: T | T[] | null): T[] {
-  if (value == null) return [];
-  return Array.isArray(value) ? value : [value];
-}
-
-async function getAnnouncementList(page: number): Promise<AnnouncementListData> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/announcement/list?page=${page}`,
-    { cache: "no-store" },
-  );
-
-  const payload = (await response.json()) as AnnouncementResponse;
-
-  if (!response.ok || !payload.success) {
-    throw new Error(payload?.message ?? "사업공고 조회에 실패했습니다.");
-  }
-
-  return payload.data;
-}
-
-export default async function Home() {
-  let list: AnnouncementListData | null = null;
-  let errorMessage: string | null = null;
-
-  try {
-    list = await getAnnouncementList(1);
-  } catch (error) {
-    errorMessage =
-      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
-  }
+export default async function Home({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const parsed = Number(params.page);
+  const currentPage = Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-sky-50 to-indigo-100 px-6 py-10 text-slate-900">
-      <section className="mx-auto w-full max-w-6xl rounded-3xl border border-white/60 bg-white/80 p-6 shadow-xl backdrop-blur md:p-10">
-        <header className="mb-8 flex flex-col gap-3">
-          <p className="inline-flex w-fit rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold tracking-wide text-sky-700">
-            MSIT Announcement API
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-            과기정통부 사업공고 목록
-          </h1>
-          <p className="text-sm text-slate-600 md:text-base">
-            서버 API: <code className="font-mono">{API_BASE_URL}/api/announcement/list?page=1</code>
-          </p>
-        </header>
+    <main className="bg-white text-slate-900">
 
-        {errorMessage ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            <p className="font-semibold">데이터를 불러오지 못했습니다.</p>
-            <p className="mt-1 text-sm">{errorMessage}</p>
+      <nav className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
+          <div className="flex items-center gap-2">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-800 text-white">⌁</div>
+            <p className="text-lg font-extrabold text-slate-800">
+              Connect<span className="text-sky-700">R&D</span>
+            </p>
           </div>
-        ) : (
-          <>
-            <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs uppercase text-slate-500">Page</p>
-                <p className="mt-1 text-2xl font-semibold">{list?.pageNo ?? "-"}</p>
+          <div className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
+            <a href="#industry" className="hover:text-sky-700">기업 검색</a>
+            <a href="#rd" className="hover:text-sky-700">R&D 과제</a>
+            <a href="#ai" className="hover:text-sky-700">AI 매칭</a>
+          </div>
+          <button className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white">기업 등록</button>
+        </div>
+      </nav>
+
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-6 py-20 text-white">
+        <div className="absolute inset-0 opacity-20 [background:radial-gradient(circle_at_20%_20%,#60a5fa_0,transparent_35%),radial-gradient(circle_at_80%_40%,#93c5fd_0,transparent_30%)]" />
+        <div className="relative mx-auto w-full max-w-6xl">
+          <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-sky-300">
+            R&D 매칭 플랫폼 · 시험인증 연결 서비스
+          </p>
+          <h1 className="text-3xl font-black leading-tight md:text-5xl">
+            정부 R&D 공고와 기업 역량을 연결해
+            <span className="block text-sky-300">AI가 최적 파트너를 추천합니다</span>
+          </h1>
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-200 md:text-base">
+            실시간 공고 데이터와 기업 기술 정보를 통합해 컨소시엄 탐색부터 과제 검토까지 빠르게 진행할 수 있습니다.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-700">기업 등록하기</button>
+            <a href="#rd" className="rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold hover:bg-white/20">최신 공고 보기</a>
+            <a href="#industry" className="rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold hover:bg-white/20">산업 분야 탐색</a>
+          </div>
+        </div>
+      </section>
+
+      <div className="overflow-hidden bg-slate-800 py-2 text-sm text-sky-200">
+        <div className="ticker-track">
+          {[...tickerItems, ...tickerItems].map((item, idx) => (
+            <span key={`${item}-${idx}`} className="mx-8 inline-block whitespace-nowrap before:mr-2 before:text-sky-400 before:content-['◆']">
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <section id="ai" className="border-b border-slate-200 bg-slate-50 px-6 py-7">
+        <div className="mx-auto w-full max-w-6xl">
+          <AnnouncementClientPanel />
+        </div>
+      </section>
+
+      <section id="industry" className="px-6 py-16">
+        <div className="mx-auto w-full max-w-6xl">
+          <h2 className="text-3xl font-extrabold text-slate-800">산업 분야별 기업 DB</h2>
+          <p className="mt-2 text-slate-500">핵심 산업군별 기업 현황과 기술 역량 정보를 한눈에 확인하세요.</p>
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {industries.map((industry) => (
+              <div
+                key={industry.name}
+                className="relative rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md"
+              >
+                {industry.priority ? <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-emerald-500" /> : null}
+                <div className="text-2xl">{industry.icon}</div>
+                <p className="mt-2 text-sm font-bold text-slate-800">{industry.name}</p>
+                <p className="text-xs text-slate-500">{industry.count}</p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs uppercase text-slate-500">Rows</p>
-                <p className="mt-1 text-2xl font-semibold">{list?.numOfRows ?? "-"}</p>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs uppercase text-slate-500">Total</p>
-                <p className="mt-1 text-2xl font-semibold">{list?.totalCount ?? "-"}</p>
-              </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <ul className="space-y-4">
-              {toArray(list?.items).map((item, index) => {
-                const files = toArray(item.files?.file);
-                return (
-                  <li
-                    key={`${item.subject ?? "announcement"}-${index}`}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                  >
-                    <h2 className="text-lg font-semibold leading-snug text-slate-900">
-                      {item.subject ?? "제목 없음"}
-                    </h2>
-
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-                      <span>부서: {item.deptName ?? "-"}</span>
-                      <span>담당자: {item.managerName ?? "-"}</span>
-                      <span>연락처: {item.managerTel ?? "-"}</span>
-                      <span>게시일: {item.pressDt ?? "-"}</span>
-                    </div>
-
-                    {item.viewUrl ? (
-                      <a
-                        className="mt-4 inline-flex text-sm font-medium text-sky-700 underline underline-offset-4"
-                        href={item.viewUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        공고 상세 보기
-                      </a>
-                    ) : null}
-
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-slate-700">첨부파일</p>
-                      {files.length === 0 ? (
-                        <p className="mt-1 text-sm text-slate-500">첨부파일 없음</p>
-                      ) : (
-                        <ul className="mt-2 space-y-1 text-sm">
-                          {files.map((file, fileIndex) => (
-                            <li key={`${file.fileUrl ?? file.fileName ?? "file"}-${fileIndex}`}>
-                              {file.fileUrl ? (
-                                <a
-                                  className="text-indigo-700 underline underline-offset-4"
-                                  href={file.fileUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  {file.fileName ?? "파일 다운로드"}
-                                </a>
-                              ) : (
-                                <span className="text-slate-600">{file.fileName ?? "이름 없는 파일"}</span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
+      <section id="rd" className="bg-slate-50 px-6 py-16">
+        <div className="mx-auto w-full max-w-6xl">
+          <Suspense fallback={<AnnouncementListSkeleton />}>
+            <AnnouncementServerList currentPage={currentPage} />
+          </Suspense>
+        </div>
       </section>
     </main>
   );
